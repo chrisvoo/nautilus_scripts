@@ -1,0 +1,33 @@
+#!/bin/bash
+
+if ! command -v ffmpeg &> /dev/null
+then
+    zenity --error --text="ffmpeg could not be found. \nPlease do 'sudo apt install ffmpeg'"
+    exit
+fi
+
+COUNTER=0
+(
+while [ $# -gt 0 ]; do
+	COUNTER=$(( COUNTER + 1 ))
+	FFREPORT=./${filename}-$(date +%h.%m.%s).log
+	
+	filename=$(basename "$1")
+	extension="${filename##*.}"
+	filename="${filename%.*}"
+	
+	echo "# processing $filename..."
+	ffmpeg -nostdin -hide_banner -i "$1" -f mp3 -codec:a libmp3lame -ac 2 -q:a 0 -map_metadata 0 -id3v2_version 3 "${filename}.mp3.temp"
+	mv "${filename}.mp3.temp" "${filename}.mp3"
+	rm "${filename}.flac"
+	
+	echo $(( 100 * $COUNTER / $# ))
+
+	shift
+done
+echo "100"
+) | zenity --progress \
+	--title="Conversion process ($# files)" \
+	--text="$filename" \
+	--percentage=0 \
+	--auto-close
